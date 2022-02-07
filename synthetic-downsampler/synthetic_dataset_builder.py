@@ -1,15 +1,15 @@
-from abc import ABC, abstractmethod
-
-class SyntheticDatasetBuilder(ABC):
+class SyntheticDatasetBuilder(object):
     def __init__(self, args):
         self.load_path = args.load_path
         self.save_path = args.save_path
         self.random_seed = args.random_seed
+        self.format = None
 
-    @abstractmethod
     def produce_lowres(self):
-        raise NotImplementedError()
+        scenes = self.format.get_scene_paths()
+        print(f'Producing synthetic low resolution data for {len(scenes)} scenes')
+        for scene in scenes:
+            self._produce_lowres_for_scene(scene)
 
-    @staticmethod
-    def _produce_lowres_for_scene():
+    def _produce_lowres_for_scene(self, scene):
         pass
