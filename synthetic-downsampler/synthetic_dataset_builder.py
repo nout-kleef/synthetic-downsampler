@@ -12,4 +12,5 @@ class SyntheticDatasetBuilder(object):
             self._produce_lowres_for_scene(scene)
 
     def _produce_lowres_for_scene(self, scene):
+        save_dir = self.format.convert_load_path_to_save_path(scene)
         pass
