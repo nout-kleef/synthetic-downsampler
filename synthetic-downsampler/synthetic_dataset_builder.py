@@ -14,17 +14,30 @@ class SyntheticDatasetBuilder(object):
 
     def produce_dataset(self):
         self._produce_training_data()
-        # TODO: copy test dir
+        self._produce_testing_data()
 
-    def _produce_training_data(self):
-        auth_scenes = self.format.get_scene_paths()
+    def _produce_training_data(self, skip_if_exists=True):
+        auth_scenes = self.format.get_scene_paths(test=False)
         print(f'Producing synthetic low resolution data for {len(auth_scenes)} scenes')
+        if skip_if_exists and os.path.exists(os.path.join(self.save_path, 'train')):
+            print(f'WARN: training data directory already exists. Skipping step.')
+            return
         total_lrs = 0
         for auth_scene in tqdm.tqdm(auth_scenes):
             synth_scene, num_lrs = self._produce_synthetic_scene(auth_scene)
             self._produce_lowres_images(synth_scene, num_lrs)
             total_lrs += num_lrs
         print(f'Produced {total_lrs} low-resolution images (avg {total_lrs / len(auth_scenes):.1f} per scene)')
+
+    def _produce_testing_data(self, skip_if_exists=True):
+        auth_scenes = self.format.get_scene_paths(test=True)
+        print(f'Copying test data for {len(auth_scenes)} scenes to synthetic dataset')
+        if skip_if_exists and os.path.exists(os.path.join(self.save_path, 'test')):
+            print(f'WARN: test data directory already exists. Skipping step.')
+            return
+        for auth_scene in tqdm.tqdm(auth_scenes):
+            synth_scene = self.format.convert_load_path_to_save_path(auth_scene)
+            shutil.copytree(auth_scene, synth_scene)
             
     def _produce_synthetic_scene(self, load_dir):
         save_dir = self.format.convert_load_path_to_save_path(load_dir)

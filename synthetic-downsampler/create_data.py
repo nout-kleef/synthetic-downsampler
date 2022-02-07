@@ -1,5 +1,5 @@
 import argparse
-import synthetic_dataset_builder, probav_dataset_builder
+import probav_dataset_builder
 from downsampler import BicubicDownsampler
 
 
