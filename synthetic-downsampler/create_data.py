@@ -12,7 +12,7 @@ def main():
     # produce a new dataset
     if args.format == 'probav':
         dataset = probav_dataset_builder.ProbaVDatasetBuilder(args)
-    dataset.produce_lowres()
+    dataset.produce_dataset()
 
 if __name__ == '__main__':
     main()
