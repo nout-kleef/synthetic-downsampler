@@ -1,5 +1,6 @@
 import argparse
 import synthetic_dataset_builder, probav_dataset_builder
+from downsampler import BicubicDownsampler
 
 
 def main():
@@ -10,8 +11,9 @@ def main():
     parser.add_argument('--random_seed', help='Random seed to make results reproducible')
     args = parser.parse_args()
     # produce a new dataset
+    downsampler = BicubicDownsampler(factor=3)
     if args.format == 'probav':
-        dataset = probav_dataset_builder.ProbaVDatasetBuilder(args)
+        dataset = probav_dataset_builder.ProbaVDatasetBuilder(args, downsampler)
     dataset.produce_dataset()
 
 if __name__ == '__main__':
