@@ -5,25 +5,36 @@ from PIL import Image
 from abc import abstractmethod
 
 class Downsampler(object):
-    def __init__(self, factor, degradation_kernel_size):
-        self.factor = factor
-        self.degradation_kernel_size = degradation_kernel_size
+    def __init__(self, pipeline):
+        self.pipeline = pipeline
+        self.__log_pipeline_stages()
 
     def _create_lowres(self, highres):
-        result = self._degrade(highres)
-        result = self._direct_downsample(result)
-        result = self._noise(result)
+        result = highres
+        # transform the image through all pipeline stages
+        for action, config in self.pipeline:
+            result = action(self, result, **config)
+        if result.size[0] != 128 or result.size[1] != 128:
+            print(f'WARN: resulting image has unexpected size {result.size}')
         return result
 
     def downsample(self, scene_path, num_lrs):
         assert num_lrs < 1000
-        hr_path = os.path.join(scene_path, 'HR.png')  # TODO: could support other formats here
+        hr_path = os.path.join(scene_path, 'HR.png')
         ground_truth = Image.fromarray(np.array(Image.open(hr_path)).astype("uint16"))
         for i in range(num_lrs):
             filename = f'LR{i:03}.png'
             lr_path = os.path.join(scene_path, filename)
             lr = self._create_lowres(ground_truth)
             lr.save(lr_path)
+
+    def __log_pipeline_stages(self):
+        print('******************************')
+        print('*** DOWNSAMPLING PIPELINE: ***')
+        print('******************************\n')
+        for action, config in self.pipeline:
+            print(f'  {action.__name__}, {config}')
+        print('\n******************************\n')
 
     def __debug_14bit(self, img, title=None):
         img_tmp = np.asarray(img)
@@ -35,7 +46,7 @@ class Downsampler(object):
         raise NotImplementedError()
 
     @abstractmethod
-    def _direct_downsample(self, img):
+    def _direct_downsample(self, img, s):
         raise NotImplementedError()
 
     @abstractmethod
@@ -43,15 +54,15 @@ class Downsampler(object):
         raise NotImplementedError()
 
 class BicubicDownsampler(Downsampler):
-    def __init__(self, factor, degradation_kernel_size):
-        super().__init__(factor, degradation_kernel_size)
+    def __init__(self, pipeline):
+        super().__init__(pipeline)
 
     def _degrade(self, img):
         img_blurred = gaussian_filter(img, sigma=self.degradation_kernel_size)
         return Image.fromarray(img_blurred)
 
-    def _direct_downsample(self, img):
-        lr_size = (int(img.size[0] / self.factor), int(img.size[1] / self.factor))
+    def _direct_downsample(self, img, s):
+        lr_size = (int(img.size[0] / s), int(img.size[1] / s))
         img = img.convert('I')
         img = img.resize(lr_size, Image.BICUBIC)
         img = img.convert('I;16')

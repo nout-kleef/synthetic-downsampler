@@ -6,14 +6,14 @@ import tqdm
 from dataset_format import ProbaVFormat
 
 class SyntheticDatasetBuilder(object):
-    def __init__(self, args, format, downsampler):
-        self.load_path = args.load_path
-        self.save_path = args.save_path
-        self.random_seed = args.random_seed
-        self.eval_dir = args.eval_dir
-        self.skip_if_exists = args.skip_if_exists
+    def __init__(self, format, downsampler, load_path, save_path, random_seed, eval_dir, skip_if_exists):
         self.format = format
         self.downsampler = downsampler
+        self.load_path = load_path
+        self.save_path = save_path
+        self.random_seed = random_seed
+        self.eval_dir = eval_dir
+        self.skip_if_exists = skip_if_exists
 
     def produce_dataset(self):
         self._produce_training_data()
@@ -78,9 +78,13 @@ class SyntheticDatasetBuilder(object):
         self.downsampler.downsample(scene, num_lrs)
 
 class ProbaVDatasetBuilder(SyntheticDatasetBuilder):
-    def __init__(self, args, downsampler):
+    def __init__(self, downsampler, load_path, save_path, random_seed, eval_dir, skip_if_exists):
         super().__init__(
-            args=args, 
-            downsampler=downsampler,
-            format=ProbaVFormat(load_path=args.load_path, save_path=args.save_path)
+            ProbaVFormat(load_path=load_path, save_path=save_path), 
+            downsampler, 
+            load_path, 
+            save_path, 
+            random_seed, 
+            eval_dir, 
+            skip_if_exists
         )
