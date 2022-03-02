@@ -10,11 +10,8 @@ class Downsampler(object):
         self.degradation_kernel_size = degradation_kernel_size
 
     def _create_lowres(self, highres):
-        self.__debug_14bit(highres, 'img')
         result = self._degrade(highres)
-        self.__debug_14bit(result, 'img_degraded')
         result = self._direct_downsample(result)
-        self.__debug_14bit(result, 'img_downsampled')
         result = self._noise(result)
         return result
 
@@ -61,8 +58,6 @@ class BicubicDownsampler(Downsampler):
         return img
 
     def _noise(self, img):
-        for i in range(img.size[0]):
-            for j in range(img.size[1]):
-                cur_val = img.get_pixel((i, j))
-                print(cur_val)
-        return img  # TODO
+        noise = np.random.normal(0, 100, (img.size[0],img.size[1]))
+        img = np.clip(np.asarray(img) + noise, 0.0, 2**16-1)
+        return Image.fromarray(img.round().astype('uint16'))
