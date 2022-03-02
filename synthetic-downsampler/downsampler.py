@@ -5,9 +5,9 @@ from PIL import Image
 from abc import abstractmethod
 
 class Downsampler(object):
-    def __init__(self, pipeline):
+    def __init__(self, pipeline, save_dir):
         self.pipeline = pipeline
-        self.__log_pipeline_stages()
+        self.__log_pipeline_stages(save_dir)
 
     def _create_lowres(self, highres):
         result = highres
@@ -28,18 +28,21 @@ class Downsampler(object):
             lr = self._create_lowres(ground_truth)
             lr.save(lr_path)
 
-    def __log_pipeline_stages(self):
-        conf = '******************************'
-        conf += '*** DOWNSAMPLING PIPELINE: ***'
-        conf += '******************************\n'
+    def __log_pipeline_stages(self, save_dir):
+        conf = '******************************\n'
+        conf += '*** DOWNSAMPLING PIPELINE: ***\n'
+        conf += '******************************\n\n'
         size = 384
         for action, config in self.pipeline:
-            conf += f'       size=({size}, {size}), action={action.__name__:<20}, params={config}'
+            conf += f'       size=({size}, {size}), action={action.__name__:<20}, params={config}\n'
             if action.__name__ == '_direct_downsample':
                 size = int(size / config['factor'])
-        conf += f'  OUT: size=({size}, {size})'
-        conf += '\n******************************\n'
-        return conf
+        conf += f'  OUT: size=({size}, {size})\n'
+        conf += '\n******************************\n\n'
+        log_file = os.path.join(save_dir, 'data_creation_config.txt')
+        with open(log_file, 'w') as f:
+            f.writelines(conf)
+        print(conf)
 
     def __debug_14bit(self, img, title=None):
         img_tmp = np.asarray(img)
@@ -59,8 +62,8 @@ class Downsampler(object):
         raise NotImplementedError()
 
 class BicubicDownsampler(Downsampler):
-    def __init__(self, pipeline):
-        super().__init__(pipeline)
+    def __init__(self, pipeline, save_dir):
+        super().__init__(pipeline, save_dir)
 
     def _degrade(self, img, sigma):
         img_blurred = gaussian_filter(img, sigma=sigma)

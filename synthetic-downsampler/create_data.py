@@ -28,7 +28,7 @@ def main():
     
 
 def create_dataset(pipeline, format, load_path, save_path, random_seed, eval_dir, skip_if_exists):
-    downsampler = BicubicDownsampler(pipeline)
+    downsampler = BicubicDownsampler(pipeline, save_path)
     if format == 'probav':
         dataset = synthetic_dataset_builder.ProbaVDatasetBuilder(
             downsampler, load_path, save_path, random_seed, eval_dir, skip_if_exists
