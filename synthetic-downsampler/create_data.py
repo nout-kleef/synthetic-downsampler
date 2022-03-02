@@ -13,7 +13,7 @@ def main():
     parser.add_argument('--random_seed', help='Random seed to make results reproducible')
     args = parser.parse_args()
     # produce a new dataset
-    downsampler = BicubicDownsampler(factor=3)
+    downsampler = BicubicDownsampler(factor=3, degradation_kernel_size=0.8)
     if args.format == 'probav':
         dataset = synthetic_dataset_builder.ProbaVDatasetBuilder(args, downsampler)
     dataset.produce_dataset()
