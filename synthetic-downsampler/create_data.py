@@ -1,6 +1,6 @@
 import argparse
 import synthetic_dataset_builder
-from downsampler import Downsampler, BicubicDownsampler
+from downsampler import BicubicDownsampler
 
 def main():
     parser = argparse.ArgumentParser(description='Create a synthetic dataset from high-resolution ground truth.')
@@ -13,7 +13,10 @@ def main():
     args = parser.parse_args()
     create_dataset(
         [
-            (BicubicDownsampler._direct_downsample, {'s': 3})
+            (BicubicDownsampler._noise,             {'sigma': 100}),
+            (BicubicDownsampler._degrade,           {'sigma': 0.5}),
+            (BicubicDownsampler._direct_downsample, {'factor': 3}),
+            (BicubicDownsampler._noise,             {'sigma': 30}),
         ],
         args.format,
         args.load_path,

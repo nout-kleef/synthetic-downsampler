@@ -29,12 +29,17 @@ class Downsampler(object):
             lr.save(lr_path)
 
     def __log_pipeline_stages(self):
-        print('******************************')
-        print('*** DOWNSAMPLING PIPELINE: ***')
-        print('******************************\n')
+        conf = '******************************'
+        conf += '*** DOWNSAMPLING PIPELINE: ***'
+        conf += '******************************\n'
+        size = 384
         for action, config in self.pipeline:
-            print(f'  {action.__name__}, {config}')
-        print('\n******************************\n')
+            conf += f'       size=({size}, {size}), action={action.__name__:<20}, params={config}'
+            if action.__name__ == '_direct_downsample':
+                size = int(size / config['factor'])
+        conf += f'  OUT: size=({size}, {size})'
+        conf += '\n******************************\n'
+        return conf
 
     def __debug_14bit(self, img, title=None):
         img_tmp = np.asarray(img)
@@ -42,33 +47,33 @@ class Downsampler(object):
         Image.fromarray(img_tmp).show(title)
 
     @abstractmethod
-    def _degrade(self, img):
+    def _degrade(self, img, sigma):
         raise NotImplementedError()
 
     @abstractmethod
-    def _direct_downsample(self, img, s):
+    def _direct_downsample(self, img, factor):
         raise NotImplementedError()
 
     @abstractmethod
-    def _noise(self, img):
+    def _noise(self, img, sigma):
         raise NotImplementedError()
 
 class BicubicDownsampler(Downsampler):
     def __init__(self, pipeline):
         super().__init__(pipeline)
 
-    def _degrade(self, img):
-        img_blurred = gaussian_filter(img, sigma=self.degradation_kernel_size)
+    def _degrade(self, img, sigma):
+        img_blurred = gaussian_filter(img, sigma=sigma)
         return Image.fromarray(img_blurred)
 
-    def _direct_downsample(self, img, s):
-        lr_size = (int(img.size[0] / s), int(img.size[1] / s))
+    def _direct_downsample(self, img, factor):
+        lr_size = (int(img.size[0] / factor), int(img.size[1] / factor))
         img = img.convert('I')
         img = img.resize(lr_size, Image.BICUBIC)
         img = img.convert('I;16')
         return img
 
-    def _noise(self, img):
-        noise = np.random.normal(0, 100, (img.size[0],img.size[1]))
+    def _noise(self, img, sigma):
+        noise = np.random.normal(0, sigma, (img.size[0],img.size[1]))
         img = np.clip(np.asarray(img) + noise, 0.0, 2**16-1)
         return Image.fromarray(img.round().astype('uint16'))
