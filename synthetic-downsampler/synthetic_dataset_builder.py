@@ -3,21 +3,23 @@ import os
 from pathlib import Path
 import shutil
 import tqdm
+from dataset_format import ProbaVFormat
 
 class SyntheticDatasetBuilder(object):
-    def __init__(self, args, downsampler):
+    def __init__(self, args, format, downsampler):
         self.load_path = args.load_path
         self.save_path = args.save_path
         self.random_seed = args.random_seed
-        self.format = None
+        self.eval_dir = args.eval_dir
+        self.format = format
         self.downsampler = downsampler
 
     def produce_dataset(self):
         self._produce_training_data()
-        self._produce_testing_data()
+        self._produce_eval_data()
 
     def _produce_training_data(self, skip_if_exists=True):
-        auth_scenes = self.format.get_scene_paths(test=False)
+        auth_scenes = self.format.get_train_scene_paths()
         print(f'Producing synthetic low resolution data for {len(auth_scenes)} scenes')
         if skip_if_exists and os.path.exists(os.path.join(self.save_path, 'train')):
             print(f'WARN: training data directory already exists. Skipping step.')
@@ -29,11 +31,11 @@ class SyntheticDatasetBuilder(object):
             total_lrs += num_lrs
         print(f'Produced {total_lrs} low-resolution images (avg {total_lrs / len(auth_scenes):.1f} per scene)')
 
-    def _produce_testing_data(self, skip_if_exists=True):
-        auth_scenes = self.format.get_scene_paths(test=True)
-        print(f'Copying test data for {len(auth_scenes)} scenes to synthetic dataset')
-        if skip_if_exists and os.path.exists(os.path.join(self.save_path, 'test')):
-            print(f'WARN: test data directory already exists. Skipping step.')
+    def _produce_eval_data(self, skip_if_exists=True):
+        auth_scenes = self.format.get_eval_scene_paths()
+        print(f'Copying evaluation data for {len(auth_scenes)} scenes to synthetic dataset')
+        if skip_if_exists and os.path.exists(os.path.join(self.save_path, self.eval_dir)):
+            print(f'WARN: evaluation data directory already exists. Skipping step.')
             return
         for auth_scene in tqdm.tqdm(auth_scenes):
             synth_scene = self.format.convert_load_path_to_save_path(auth_scene)
@@ -56,3 +58,11 @@ class SyntheticDatasetBuilder(object):
 
     def _produce_lowres_images(self, scene, num_lrs):
         self.downsampler.downsample(scene, num_lrs)
+
+class ProbaVDatasetBuilder(SyntheticDatasetBuilder):
+    def __init__(self, args, downsampler):
+        super().__init__(
+            args=args, 
+            downsampler=downsampler,
+            format=ProbaVFormat(load_path=args.load_path, save_path=args.save_path)
+        )
