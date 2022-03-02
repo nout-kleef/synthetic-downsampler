@@ -8,6 +8,7 @@ def main():
     parser.add_argument('load_path', help='Path to root directory containing HR images')
     parser.add_argument('save_path', help='Path to root of directory where to store produced LR images')
     parser.add_argument('--eval_dir', choices=['val', 'test'], default='val')
+    parser.add_argument('--skip_if_exists', action='store_true')
     parser.add_argument('--format', choices=['probav'], default='probav')
     parser.add_argument('--random_seed', help='Random seed to make results reproducible')
     args = parser.parse_args()

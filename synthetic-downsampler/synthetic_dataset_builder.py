@@ -11,19 +11,26 @@ class SyntheticDatasetBuilder(object):
         self.save_path = args.save_path
         self.random_seed = args.random_seed
         self.eval_dir = args.eval_dir
+        self.skip_if_exists = args.skip_if_exists
         self.format = format
         self.downsampler = downsampler
 
     def produce_dataset(self):
         self._produce_training_data()
         self._produce_eval_data()
+        self._produce_metadata()
 
-    def _produce_training_data(self, skip_if_exists=True):
+    def _produce_training_data(self):
+        train_root = os.path.join(self.save_path, 'train')
+        if os.path.exists(train_root):
+            if self.skip_if_exists:
+                print(f'WARN: {train_root} already exists. Skipping training data production step.')
+                return
+            else:
+                print(f'WARN: {train_root} already exists. Purging existing data')
+                shutil.rmtree(train_root)
         auth_scenes = self.format.get_train_scene_paths()
         print(f'Producing synthetic low resolution data for {len(auth_scenes)} scenes')
-        if skip_if_exists and os.path.exists(os.path.join(self.save_path, 'train')):
-            print(f'WARN: training data directory already exists. Skipping step.')
-            return
         total_lrs = 0
         for auth_scene in tqdm.tqdm(auth_scenes):
             synth_scene, num_lrs = self._produce_synthetic_scene(auth_scene)
@@ -31,22 +38,33 @@ class SyntheticDatasetBuilder(object):
             total_lrs += num_lrs
         print(f'Produced {total_lrs} low-resolution images (avg {total_lrs / len(auth_scenes):.1f} per scene)')
 
-    def _produce_eval_data(self, skip_if_exists=True):
+    def _produce_eval_data(self):
+        eval_root = os.path.join(self.save_path, self.eval_dir)
+        if os.path.exists(eval_root):
+            if self.skip_if_exists:
+                print(f'WARN: {eval_root} already exists. Skipping eval data production step.')
+                return
+            else:
+                print(f'WARN: {eval_root} already exists. Purging existing data')
+                shutil.rmtree(eval_root)
         auth_scenes = self.format.get_eval_scene_paths()
         print(f'Copying evaluation data for {len(auth_scenes)} scenes to synthetic dataset')
-        if skip_if_exists and os.path.exists(os.path.join(self.save_path, self.eval_dir)):
-            print(f'WARN: evaluation data directory already exists. Skipping step.')
-            return
         for auth_scene in tqdm.tqdm(auth_scenes):
             synth_scene = self.format.convert_load_path_to_save_path(auth_scene)
             shutil.copytree(auth_scene, synth_scene)
+
+    def _produce_metadata(self):
+        print('Copying metadata')
+        norm_file = os.path.join(self.load_path, 'norm.csv')
+        shutil.copy(norm_file, self.save_path)
             
     def _produce_synthetic_scene(self, load_dir):
         save_dir = self.format.convert_load_path_to_save_path(load_dir)
         os.makedirs(save_dir, exist_ok=True)
-        # copy HR + SM
+        # copy HR + SM + clearance.npy
         shutil.copy(Path(load_dir) / 'HR.png', save_dir)
         shutil.copy(Path(load_dir) / 'SM.png', save_dir)
+        shutil.copy(Path(load_dir) / 'clearance.npy', save_dir)
         # produce LR images, copy quality maps
         lrs = glob.glob(os.path.join(load_dir, 'LR*.png'))
         for lr in lrs:
