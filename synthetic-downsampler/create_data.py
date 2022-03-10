@@ -1,4 +1,5 @@
 import argparse
+import os
 import synthetic_dataset_builder
 from downsampler import BicubicDownsampler
 
@@ -31,6 +32,7 @@ def main():
     
 
 def create_dataset(pipeline, format, load_path, save_path, random_seed, eval_dir, skip_if_exists):
+    os.makedirs(save_path, exist_ok=True)
     downsampler = BicubicDownsampler(pipeline, save_path)
     if format == 'probav':
         dataset = synthetic_dataset_builder.ProbaVDatasetBuilder(
