@@ -6,6 +6,9 @@ def main():
     parser = argparse.ArgumentParser(description='Create a synthetic dataset from high-resolution ground truth.')
     parser.add_argument('load_path', help='Path to root directory containing HR images')
     parser.add_argument('save_path', help='Path to root of directory where to store produced LR images')
+    parser.add_argument('noise1_sigma', type=float)
+    parser.add_argument('degrade1_sigma', type=float)
+    parser.add_argument('noise2_sigma', type=float)
     parser.add_argument('--eval_dir', choices=['val', 'test'], default='val')
     parser.add_argument('--skip_if_exists', action='store_true')
     parser.add_argument('--format', choices=['probav'], default='probav')
@@ -13,10 +16,10 @@ def main():
     args = parser.parse_args()
     create_dataset(
         [
-            (BicubicDownsampler._noise,             {'sigma': 100}),
-            (BicubicDownsampler._degrade,           {'sigma': 0.5}),
+            (BicubicDownsampler._noise,             {'sigma': args.noise1_sigma}),
+            (BicubicDownsampler._degrade,           {'sigma': args.degrade1_sigma}),
             (BicubicDownsampler._direct_downsample, {'factor': 3}),
-            (BicubicDownsampler._noise,             {'sigma': 30}),
+            (BicubicDownsampler._noise,             {'sigma': args.noise2_sigma}),
         ],
         args.format,
         args.load_path,
