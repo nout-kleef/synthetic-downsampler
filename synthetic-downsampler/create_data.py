@@ -10,10 +10,11 @@ def main():
     parser.add_argument('noise1_sigma', type=float)
     parser.add_argument('degrade1_sigma', type=float)
     parser.add_argument('noise2_sigma', type=float)
+    parser.add_argument('part_auth', choices=['auth0', 'auth100'], default='auth0')
+    parser.add_argument('part_synth', choices=['synth100'], default='synth100')
     parser.add_argument('--eval_dir', choices=['val', 'test'], default='val')
     parser.add_argument('--skip_if_exists', action='store_true')
     parser.add_argument('--format', choices=['probav'], default='probav')
-    parser.add_argument('--random_seed', help='Random seed to make results reproducible')
     args = parser.parse_args()
     create_dataset(
         [
@@ -25,19 +26,27 @@ def main():
         args.format,
         args.load_path,
         args.save_path,
-        args.random_seed,
         args.eval_dir,
-        args.skip_if_exists
+        args.skip_if_exists,
+        args.part_auth,
+        args.part_synth
     )
     
 
-def create_dataset(pipeline, format, load_path, save_path, random_seed, eval_dir, skip_if_exists):
+def create_dataset(pipeline, format, load_path, save_path, eval_dir, skip_if_exists, part_auth, part_synth):
     os.makedirs(save_path, exist_ok=True)
     downsampler = BicubicDownsampler(pipeline, save_path)
     if format == 'probav':
-        dataset = synthetic_dataset_builder.ProbaVDatasetBuilder(
-            downsampler, load_path, save_path, random_seed, eval_dir, skip_if_exists
-        )
+        if part_auth == 'auth0' and part_synth == 'synth100':
+            dataset = synthetic_dataset_builder.ProbaVDatasetBuilder(
+                downsampler, load_path, save_path, eval_dir, skip_if_exists
+            )
+        elif part_auth == 'auth100' and part_synth == 'synth100':
+            dataset = synthetic_dataset_builder.ProbaVDatasetBuilder100_100(
+                downsampler, load_path, save_path, eval_dir, skip_if_exists
+            )
+        else:
+            raise ValueError(f'Unexpected data mix: {part_auth}/{part_synth}')
     else:
         raise ValueError(f'Unknown format {format}')
     dataset.produce_dataset()

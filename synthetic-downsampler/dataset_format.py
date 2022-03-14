@@ -25,10 +25,11 @@ class ProbaVFormat(DatasetFormat):
     def __init__(self, load_path, save_path):
         super().__init__(load_path=load_path, save_path=save_path)
 
+    def _get_scene_paths(self, split, imgkind):
+        return glob.glob(os.path.join(self.load_path, split, imgkind, 'imgset*'))
+
     def get_train_scene_paths(self):
-        return glob.glob(os.path.join(self.load_path, 'train', 'RED', 'imgset*')) +\
-            glob.glob(os.path.join(self.load_path, 'train', 'NIR', 'imgset*'))
+        return self._get_scene_paths('train', 'RED') + self._get_scene_paths('train', 'NIR')
 
     def get_eval_scene_paths(self):
-        return glob.glob(os.path.join(self.load_path, 'val', 'RED', 'imgset*')) +\
-            glob.glob(os.path.join(self.load_path, 'val', 'NIR', 'imgset*'))
+        return self._get_scene_paths('val', 'RED') + self._get_scene_paths('val', 'NIR')
