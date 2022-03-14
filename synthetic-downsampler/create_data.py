@@ -10,8 +10,8 @@ def main():
     parser.add_argument('noise1_sigma', type=float)
     parser.add_argument('degrade1_sigma', type=float)
     parser.add_argument('noise2_sigma', type=float)
-    parser.add_argument('part_auth', choices=['auth0', 'auth100'], default='auth0')
-    parser.add_argument('part_synth', choices=['synth100'], default='synth100')
+    parser.add_argument('part_auth', choices=['auth0', 'auth100', 'auth50'], default='auth0')
+    parser.add_argument('part_synth', choices=['synth100', 'synth50'], default='synth100')
     parser.add_argument('--eval_dir', choices=['val', 'test'], default='val')
     parser.add_argument('--skip_if_exists', action='store_true')
     parser.add_argument('--format', choices=['probav'], default='probav')
@@ -43,6 +43,10 @@ def create_dataset(pipeline, format, load_path, save_path, eval_dir, skip_if_exi
             )
         elif part_auth == 'auth100' and part_synth == 'synth100':
             dataset = synthetic_dataset_builder.ProbaVDatasetBuilder100_100(
+                downsampler, load_path, save_path, eval_dir, skip_if_exists
+            )
+        elif part_auth == 'auth50' and part_synth == 'synth50':
+            dataset = synthetic_dataset_builder.ProbaVDatasetBuilder50_50(
                 downsampler, load_path, save_path, eval_dir, skip_if_exists
             )
         else:

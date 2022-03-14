@@ -1,6 +1,7 @@
 import glob
 import os
 from pathlib import Path
+import random
 import shutil
 import tqdm
 from dataset_format import ProbaVFormat
@@ -114,7 +115,6 @@ class ProbaVDatasetBuilder(SyntheticDatasetBuilder):
             new_path = self.format.convert_load_path_to_save_path(new_path)
             self._copy_authentic_scene(path, new_path)
             
-
     def _produce_training_data(self):
         SyntheticDatasetBuilder._produce_training_data(self)
         scenes = self.format.get_train_scene_paths()
@@ -127,13 +127,37 @@ class ProbaVDatasetBuilder100_100(ProbaVDatasetBuilder):
         scenes = self.format.get_train_scene_paths()
         self._produce_synthetic_data(scenes)
         # authentic - copy over with appropriate offset
-        self._copy_wrapper('NIR')
-        self._copy_wrapper('RED')
+        self._auth_synth_wrapper('NIR')
+        self._auth_synth_wrapper('RED')
 
-    def _copy_wrapper(self, imgkind):
+    def _auth_synth_wrapper(self, imgkind):
         scenes = self.format._get_scene_paths('train', imgkind)
         start_synth, end_synth = self._get_scene_range(scenes)
         num = end_synth - start_synth
         end_auth = num + num
         print(f'{imgkind}: {start_synth:>4} - {end_synth:>4}. synth:{start_synth:>4}-{end_synth - 1:>4}, auth:{num:>4}-{end_auth - 1:>4}')
         self._copy_authentic_data(scenes, offset=num)
+
+class ProbaVDatasetBuilder50_50(ProbaVDatasetBuilder):
+    def _produce_training_data(self):
+        SyntheticDatasetBuilder._produce_training_data(self)
+        self._auth_synth_wrapper('NIR')
+        self._auth_synth_wrapper('RED')
+
+    def _auth_synth_wrapper(self, imgkind):
+        auths, synths = self._create_partition(imgkind)
+        self._produce_synthetic_data(synths)
+        self._copy_authentic_data(auths, offset=0)
+
+    def _create_partition(self, imgkind):
+        scenes = sorted(self.format._get_scene_paths('train', imgkind))
+        random.seed(2647142872)
+        random.shuffle(scenes)
+        N = len(scenes)
+        auth_scenes, synth_scenes = [], []
+        for i, scene in enumerate(scenes):
+            if i < (N + 1) // 2:
+                auth_scenes.append(scene)
+            else:
+                synth_scenes.append(scene)
+        return sorted(auth_scenes), sorted(synth_scenes)
