@@ -1,6 +1,7 @@
 import filecmp
 import glob
 import os
+import argparse
 
 def is_authentic_lr(auth_lr, lr):
     # ensure LRx.png == LRx.png
@@ -48,3 +49,31 @@ def get_synth_auth_scene_counts(auth_root, root):
         else:
             result['auth'] += 1
     return result
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Verify whether a directory contains the desired mix of authentic/synthetic data')
+    parser.add_argument('auth_dataset', help='Root of dataset that is known to contain *only* authentic data')
+    parser.add_argument('dataset', help='Root of dataset that is to be tested')
+    parser.add_argument('part_synth', choices=['synth100', 'synth50'], default='synth100')
+    args = parser.parse_args()
+
+    auth_train = os.path.join(args.auth_dataset, 'train')
+    auth_val = os.path.join(args.auth_dataset, 'val')
+    train = os.path.join(args.dataset, 'train')
+    val = os.path.join(args.dataset, 'val')
+
+    # verify training data
+    if args.part_synth == 'synth100':
+        train_counts = get_synth_auth_scene_counts(auth_root=auth_train, root=train)
+        assert train_counts['auth'] == 0, f'Found {train_counts["auth"]} authentic scenes, expected 0'
+        assert train_counts['synth'] > 100, f'Found only {train_counts["synth"]} synthetic scenes'
+    elif args.part_synth == 'synth50':
+        train_counts = get_synth_auth_scene_counts(auth_root=auth_train, root=train)
+        assert train_counts['auth'] > 50, f'Found only {train_counts["auth"]} authentic scenes'
+        assert train_counts['synth'] > 50, f'Found only {train_counts["synth"]} synthetic scenes'
+        assert abs(train_counts['auth'] - train_counts['synth']) <= 1, f'Scenes: {train_counts["auth"]} vs {train_counts["synth"]}'
+    # verify that validation set is authentic
+    val_counts = get_synth_auth_scene_counts(auth_root=auth_val, root=val)
+    assert val_counts['synth'] == 0, f'Found {val_counts["synth"]} synthetic scenes, expected 0'
+    assert val_counts['auth'] > 100, f'Found only {val_counts["auth"]} authentic scenes'
+    print('SUCCESS!')
